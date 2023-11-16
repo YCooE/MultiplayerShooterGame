@@ -3,6 +3,7 @@
 
 #include "OverheadWidget.h"
 #include "Components/TextBlock.h"
+#include "GameFramework/PlayerState.h"
 
 void UOverheadWidget::SetDisplayText(FString TextToDisplay)
 {
@@ -38,4 +39,20 @@ void UOverheadWidget::ShowPlayerNetRole(APawn* InPawn)
 void UOverheadWidget::NativeDestruct()
 {
 	Super::NativeDestruct();
+}
+
+void UOverheadWidget::ShowPlayerName(APawn* InPawn)
+{
+	const APlayerState* PlayerState = InPawn->GetPlayerState();
+	if (!PlayerState || !*PlayerState->GetPlayerName() && TotalTime < GetPlayerNameTimeout)
+	{
+		FTimerHandle GetPlayerStateTimer;
+		FTimerDelegate TryAgainDelegate;
+		TryAgainDelegate.BindUFunction(this, FName("ShowPlayerName"), InPawn);
+		GetWorld()->GetTimerManager().SetTimer(GetPlayerStateTimer, TryAgainDelegate, GetPlayerNameInterval, false, 0.1f);
+		TotalTime += GetPlayerNameInterval;
+		return;
+	}
+	const FString PlayerName = InPawn->GetPlayerState()->GetPlayerName();
+	SetDisplayText(PlayerName);
 }
