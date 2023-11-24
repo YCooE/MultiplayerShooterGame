@@ -53,6 +53,21 @@ public:
 
 	void BroadcastElim(APlayerState* Attacker, APlayerState* Victim);
 
+	void AddChatBox();
+
+	UFUNCTION()
+	void ToggleInputChatBox();
+	UFUNCTION()
+	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetText(const FString& Text, const FString& PlayerName);
+
+	UFUNCTION(Client, Reliable)
+	void ClientSetText(const FString& Text, const FString& PlayerName);
+
+	
+
 protected:
 	virtual void BeginPlay() override;
 	void SetHUDTime();
@@ -60,6 +75,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Input)
 	UInputAction* QuitAction;
+
+	UPROPERTY(EditAnywhere, Category = Input)
+	UInputAction* ChatAction;
 
 	virtual void SetupInputComponent() override;
 
@@ -174,4 +192,10 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	float HighPingThreshold = 50.f;
+
+	UPROPERTY(EditAnywhere, Category = HUD)
+	TSubclassOf<class UChatBox> ChatSystemOverlayClass;
+
+	UPROPERTY(Replicated)
+	UChatBox* ChatSystemWidget;
 };

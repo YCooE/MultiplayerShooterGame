@@ -38,6 +38,8 @@ public:
 
 	bool bTeamsMatch = false;
 
+	void SendChat(const FString& Text, const FString& PlayerName);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnMatchStateSet() override;

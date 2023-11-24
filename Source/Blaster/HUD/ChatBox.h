@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Blaster/HUD/ChatTextBlock.h"
 #include "ChatBox.generated.h"
 
 /**
@@ -16,18 +17,18 @@ class BLASTER_API UChatBox : public UUserWidget
 	
 public:
     void SetChatText(const FString& Text, const FString& PlayerName);
+
     UPROPERTY(meta = (BindWidget))
     class UScrollBox* InputScrollBox;
 
     UPROPERTY(meta = (BindWidget))
     class UEditableText* InputTextBox;
 
-    UPROPERTY(meta = (BindWidget))
-    class UTextBlock* ChatTextBlock;
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<class UChatTextBlock> ChatBoxClass;
 
 private:
-    UPROPERTY(EditAnywhere)
-    TSubclassOf<class UChatBox> ChatBoxClass;
+    
 
     UPROPERTY()
     class APlayerController* OwningPlayer;

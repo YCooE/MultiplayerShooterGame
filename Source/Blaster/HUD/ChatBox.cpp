@@ -5,6 +5,7 @@
 #include "Components/ScrollBox.h"
 #include "Components/EditableText.h"
 #include "Components/TextBlock.h"
+#include "Blaster/HUD/ChatTextBlock.h"
 
 void UChatBox::SetChatText(const FString& Text, const FString& PlayerName)
 {
@@ -15,7 +16,7 @@ void UChatBox::SetChatText(const FString& Text, const FString& PlayerName)
         OwningPlayer = OwningPlayer == nullptr ? GetOwningPlayer() : OwningPlayer;
         if (OwningPlayer)
         {
-            UChatBox* ChatBoxWidget = CreateWidget<UChatBox>(OwningPlayer, ChatBoxClass);
+            UChatTextBlock* ChatBoxWidget = CreateWidget<UChatTextBlock>(OwningPlayer, ChatBoxClass);
             if (InputScrollBox && ChatBoxWidget && ChatBoxWidget->ChatTextBlock)
             {
                 ChatBoxWidget->ChatTextBlock->SetText(FText::FromString(Chat));

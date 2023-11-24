@@ -8,6 +8,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "Blaster/PlayerState/BlasterPlayerState.h"
 #include "Blaster/GameState/BlasterGameState.h"
+#include "Framework/Text/ITextDecorator.h"
 
 namespace MatchState
 {
@@ -160,4 +161,16 @@ void ABlasterGameMode::PlayerLeftGame(ABlasterPlayerState* PlayerLeaving)
 float ABlasterGameMode::CalculateDamage(AController* Attacker, AController* Victim, float BaseDamage)
 {
 	return BaseDamage;
+}
+
+void ABlasterGameMode::SendChat(const FString& Text, const FString& PlayerName)
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		ABlasterPlayerController* BlasterPlayerController = Cast<ABlasterPlayerController>(*It);
+		if (BlasterPlayerController)
+		{
+			BlasterPlayerController->ClientSetText(Text, PlayerName);
+		}
+	}
 }

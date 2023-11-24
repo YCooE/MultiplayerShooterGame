@@ -6,6 +6,7 @@
 #include "Blaster/HUD/CharacterOverlay.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/EditableText.h"
 #include "Blaster/Character/BlasterCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Blaster/GameMode/BlasterGameMode.h"
@@ -20,6 +21,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Blaster/BlasterTypes/Announcement.h"
+#include "Blaster/HUD/ChatBox.h"
 
 void ABlasterPlayerController::BeginPlay()
 {
@@ -27,6 +29,7 @@ void ABlasterPlayerController::BeginPlay()
 
 	BlasterHUD = Cast<ABlasterHUD>(GetHUD());
 	ServerCheckMatchState();
+	AddChatBox();
 }
 
 void ABlasterPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -410,6 +413,7 @@ void ABlasterPlayerController::SetupInputComponent()
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		EnhancedInputComponent->BindAction(QuitAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::ShowReturnToMainMenu);
+		EnhancedInputComponent->BindAction(ChatAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::ToggleInputChatBox);
 	}
 }
 
@@ -744,3 +748,89 @@ FString ABlasterPlayerController::GetTeamsInfoText(ABlasterGameState* BlasterGam
 	return InfoTextString;
 }
 
+void ABlasterPlayerController::AddChatBox()
+{
+	if (!IsLocalPlayerController()) return;  // This line is added because the editor keeps on giving me an error after exiting saying only local player controller can access widgets
+	if (ChatSystemOverlayClass)
+	{
+		ChatSystemWidget = ChatSystemWidget == nullptr ? CreateWidget<UChatBox>(this, ChatSystemOverlayClass) : ChatSystemWidget;
+		if (ChatSystemWidget)
+		{
+			ChatSystemWidget->AddToViewport();
+			ChatSystemWidget->InputTextBox->SetVisibility(ESlateVisibility::Collapsed);
+			ChatSystemWidget->InputTextBox->OnTextCommitted.AddDynamic(this, &ABlasterPlayerController::OnTextCommitted);
+		}
+	}
+}
+
+void ABlasterPlayerController::ToggleInputChatBox()
+{
+	if (ChatSystemWidget && ChatSystemWidget->InputTextBox)
+	{
+		if (ChatSystemWidget->InputTextBox->GetVisibility() == ESlateVisibility::Collapsed)
+		{
+			ChatSystemWidget->InputTextBox->SetVisibility(ESlateVisibility::Visible);
+			FInputModeGameAndUI InputMode;
+			InputMode.SetWidgetToFocus(ChatSystemWidget->InputTextBox->TakeWidget());
+			SetInputMode(InputMode);
+			SetShowMouseCursor(true);
+		}
+		else
+		{
+			ChatSystemWidget->InputTextBox->SetVisibility(ESlateVisibility::Collapsed);
+			FInputModeGameOnly InputMode;
+			SetInputMode(InputMode);
+			SetShowMouseCursor(false);
+		}
+	}
+}
+
+void ABlasterPlayerController::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	if (CommitMethod != ETextCommit::OnEnter) return;
+
+	PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
+	FString PlayerName("");
+	if (PlayerState)
+	{
+		PlayerName = PlayerState->GetPlayerName();
+	}
+	if (ChatSystemWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Here"));
+		if (!Text.IsEmpty())
+		{
+			ServerSetText(Text.ToString(), PlayerName);
+		}
+		ChatSystemWidget->InputTextBox->SetText(FText());
+		ChatSystemWidget->InputTextBox->SetVisibility(ESlateVisibility::Collapsed);
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+		SetShowMouseCursor(false);
+	}
+}
+
+void ABlasterPlayerController::ServerSetText_Implementation(const FString& Text, const FString& PlayerName)
+{
+	BlasterGameMode = BlasterGameMode == nullptr ? Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this)) : BlasterGameMode;
+	if (BlasterGameMode)
+	{
+		BlasterGameMode->SendChat(Text, PlayerName);
+	}
+}
+
+void ABlasterPlayerController::ClientSetText_Implementation(const FString& Text, const FString& PlayerName)
+{
+	PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
+	if (ChatSystemWidget && PlayerState)
+	{
+		if (PlayerName == PlayerState->GetPlayerName())
+		{
+			ChatSystemWidget->SetChatText(Text, "You");
+		}
+		else
+		{
+			ChatSystemWidget->SetChatText(Text, PlayerName);
+		}
+	}
+}
